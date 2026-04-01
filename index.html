@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Smart Bank Fraud Detection</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+body {
+    margin:0;
+    font-family:'Poppins',sans-serif;
+    background: linear-gradient(135deg,#eef2ff,#f8fafc);
+}
+
+.navbar {
+    background: linear-gradient(90deg,#6a11cb,#2575fc);
+    color:white;
+    padding:20px;
+    text-align:center;
+    font-size:28px;
+    font-weight:bold;
+}
+
+.card {
+    background:white;
+    width:380px;
+    margin:30px auto;
+    padding:25px;
+    border-radius:15px;
+    box-shadow:0 10px 25px rgba(0,0,0,0.1);
+}
+
+input {
+    width:100%;
+    padding:14px;
+    margin-top:12px;
+    font-size:18px;
+    border-radius:8px;
+    border:1px solid #ccc;
+}
+
+.btn {
+    width:100%;
+    padding:14px;
+    margin-top:15px;
+    background: linear-gradient(90deg,#2575fc,#6a11cb);
+    color:white;
+    border:none;
+    border-radius:10px;
+    font-weight:bold;
+    font-size:16px;
+    cursor:pointer;
+    transition:0.3s;
+}
+
+.btn:hover {
+    transform: scale(1.05);
+    box-shadow:0 5px 15px rgba(0,0,0,0.2);
+}
+
+.menu {
+    display:flex;
+    justify-content:space-around;
+    margin:20px;
+}
+
+.menu div {
+    background:white;
+    padding:12px;
+    border-radius:10px;
+    cursor:pointer;
+    font-weight:bold;
+}
+
+.section { display:none; }
+.active { display:block; }
+
+table {
+    width:95%;
+    margin:auto;
+    border-collapse:collapse;
+}
+th,td { padding:12px; text-align:center; }
+th { background:#2575fc; color:white; }
+
+.success { color:green; font-weight:bold; }
+.fraud { color:red; font-weight:bold; }
+
+.otp-box {
+    font-size:28px;
+    font-weight:bold;
+    color:green;
+    text-align:center;
+}
+
+.timer {
+    text-align:center;
+    color:red;
+}
+</style>
+
+</head>
+
+<body>
+
+<div class="navbar">Smart Bank Fraud Detection</div>
+
+<!-- LOGIN -->
+<div id="loginPage" class="card">
+<h2>Login</h2>
+<input id="loginUser" placeholder="👤 Username">
+<input id="loginPass" type="password" placeholder="🔒 Password">
+<button class="btn" onclick="login()">Login</button>
+<p><a href="#" onclick="showSignup()">Create Account</a></p>
+</div>
+
+<!-- SIGNUP -->
+<div id="signupPage" class="card section">
+<h2>Create Account</h2>
+<input id="regUser" placeholder="👤 Username">
+<input id="regPass" type="password" placeholder="🔒 Password">
+<input id="regPhone" placeholder="📱 Phone Number">
+<button class="btn" onclick="signup()">Register</button>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard" class="section">
+
+<div class="menu">
+<div onclick="openSection('profile')">👤 Profile</div>
+<div onclick="openSection('wallet')">💰 Wallet</div>
+<div onclick="openSection('payment')">💳 Payment</div>
+<div onclick="openSection('history')">📊 History</div>
+</div>
+
+<!-- PROFILE -->
+<div id="profile" class="card section">
+<h2>Profile</h2>
+<p id="profileData"></p>
+<p id="balanceText"></p>
+<button class="btn" onclick="logout()">Logout</button>
+</div>
+
+<!-- WALLET -->
+<div id="wallet" class="card section">
+<h2>💰 Add Money</h2>
+
+<input id="addAmount" placeholder="Enter Amount">
+
+<button class="btn" onclick="addMoney()">➕ Add Money</button>
+
+<p id="walletMsg" style="color:green;font-weight:bold;"></p>
+
+</div>
+
+<!-- PAYMENT -->
+<div id="payment" class="card section">
+<h2>Payment</h2>
+
+<input id="card"
+placeholder="💳 Enter 12-digit Card Number"
+maxlength="12"
+oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+
+<input id="amount" placeholder="💰 Enter Amount">
+
+<button class="btn" onclick="pay()">Pay</button>
+</div>
+
+<!-- OTP -->
+<div id="otpSection" class="card section">
+<h2>OTP Verification</h2>
+<p id="otpDisplay" class="otp-box"></p>
+<p id="timer" class="timer"></p>
+<input id="otpInput" placeholder="Enter OTP">
+<button class="btn" onclick="verifyOTP()">Verify</button>
+</div>
+
+<!-- HISTORY -->
+<div id="history" class="section">
+<h2 style="text-align:center;">Transaction History</h2>
+
+<table>
+<tr>
+<th>Date</th>
+<th>Card</th>
+<th>Amount</th>
+<th>Status</th>
+</tr>
+
+<tbody id="historyTable"></tbody>
+</table>
+</div>
+
+</div>
+
+<script>
+
+let otp="";
+let tempAmount=0;
+let countdown;
+
+// Signup
+function signup(){
+    if(regUser.value=="" || regPass.value=="" || regPhone.value==""){
+        alert("Fill all fields");
+        return;
+    }
+
+    localStorage.setItem("user",regUser.value);
+    localStorage.setItem("pass",regPass.value);
+    localStorage.setItem("phone",regPhone.value);
+    localStorage.setItem("balance",0);
+
+    alert("✔ Account Created");
+    showLogin();
+}
+
+// Login
+function login(){
+    if(loginUser.value==localStorage.getItem("user") &&
+       loginPass.value==localStorage.getItem("pass")){
+
+        loginPage.style.display="none";
+        dashboard.style.display="block";
+
+        let balance = localStorage.getItem("balance") || 0;
+
+        profileData.innerHTML =
+        "👤 "+loginUser.value+"<br>📱 "+localStorage.getItem("phone");
+
+        balanceText.innerHTML = "💰 Balance: ₹"+balance;
+
+        openSection("profile");
+
+    } else {
+        alert("❌ Invalid Login");
+    }
+}
+
+// Add Money
+function addMoney(){
+
+    let amt = parseInt(addAmount.value);
+
+    if(isNaN(amt) || amt <= 0){
+        alert("❌ Enter valid amount");
+        return;
+    }
+
+    let balance = parseInt(localStorage.getItem("balance")) || 0;
+
+    balance += amt;
+    localStorage.setItem("balance", balance);
+
+    walletMsg.innerHTML = "✔ ₹" + amt + " Added Successfully";
+
+    balanceText.innerHTML = "💰 Balance: ₹" + balance;
+
+    addAmount.value = "";
+}
+
+// Payment
+function pay(){
+
+    let card=document.getElementById("card").value;
+    let amount=parseInt(document.getElementById("amount").value);
+
+    if(card.length !== 12){
+        alert("❌ Card must be 12 digits");
+        return;
+    }
+
+    if(isNaN(amount) || amount <= 0){
+        alert("❌ Enter valid amount");
+        return;
+    }
+
+    let balance = parseInt(localStorage.getItem("balance")) || 0;
+
+    if(amount > balance){
+        alert("❌ Insufficient Balance");
+        return;
+    }
+
+    tempAmount=amount;
+
+    otp=Math.floor(1000+Math.random()*9000);
+
+    otpDisplay.innerHTML="🔐 OTP: "+otp;
+
+    openSection("otpSection");
+
+    startTimer();
+
+    setTimeout(()=>{
+        otpDisplay.innerHTML="🔐 OTP Hidden";
+    },5000);
+}
+
+// Timer
+function startTimer(){
+    let time=30;
+    countdown=setInterval(()=>{
+        timer.innerHTML="Expires in "+time+" sec";
+        time--;
+        if(time<0){
+            clearInterval(countdown);
+            otp="";
+            timer.innerHTML="OTP Expired";
+        }
+    },1000);
+}
+
+// Verify OTP
+function verifyOTP(){
+
+    let entered=otpInput.value;
+
+    let status = entered==otp ? "✔ Success" : "❌ Fraud";
+
+    let balance = parseInt(localStorage.getItem("balance")) || 0;
+
+    if(entered==otp){
+        balance -= tempAmount;
+        localStorage.setItem("balance", balance);
+        balanceText.innerHTML = "💰 Balance: ₹"+balance;
+    }
+
+    let now=new Date().toLocaleString();
+    let card=document.getElementById("card").value;
+    let masked="XXXX-"+card.slice(-4);
+
+    let row=`<tr>
+    <td>${now}</td>
+    <td>${masked}</td>
+    <td>₹${tempAmount}</td>
+    <td class="${entered==otp?'success':'fraud'}">${status}</td>
+    </tr>`;
+
+    historyTable.innerHTML+=row;
+
+    openSection("history");
+}
+
+// Navigation
+function showSignup(){
+    loginPage.style.display="none";
+    signupPage.style.display="block";
+}
+
+function showLogin(){
+    signupPage.style.display="none";
+    loginPage.style.display="block";
+}
+
+function openSection(id){
+    document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
+    document.getElementById(id).classList.add("active");
+}
+
+function logout(){
+    location.reload();
+}
+
+</script>
+
+</body>
+</html>

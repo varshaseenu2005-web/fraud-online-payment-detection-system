@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NeoVault — Smart Banking</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#070b12;--surf:#0d1525;--surf2:#111e33;--bdr:rgba(96,165,250,0.13);--acc:#3b82f6;--acc2:#06b6d4;--danger:#ef4444;--ok:#22c55e;--warn:#f59e0b;--txt:#e2e8f0;--muted:#64748b;--mono:'DM Mono',monospace;--sans:'DM Sans',sans-serif;--disp:'Syne',sans-serif;--r:14px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);background:var(--bg);color:var(--txt);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 50% at 20% -10%,rgba(59,130,246,.08),transparent 60%),radial-gradient(ellipse 60% 40% at 80% 110%,rgba(6,182,212,.06),transparent 60%);pointer-events:none;z-index:0}
+body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(96,165,250,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(96,165,250,.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+.topbar{position:fixed;top:0;left:0;right:0;z-index:100;height:58px;display:flex;align-items:center;justify-content:space-between;padding:0 26px;background:rgba(7,11,18,.88);backdrop-filter:blur(14px);border-bottom:1px solid var(--bdr)}
+.logo{font-family:var(--disp);font-size:18px;font-weight:800;background:linear-gradient(135deg,var(--acc),var(--acc2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.topbar-r{font-family:var(--mono);font-size:11px;color:var(--muted);display:flex;align-items:center;gap:14px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--ok);display:inline-block;margin-right:5px;animation:pdot 2s ease infinite}
+@keyframes pdot{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(34,197,94,.4)}50%{opacity:.7;box-shadow:0 0 0 5px rgba(34,197,94,0)}}
+.app{position:relative;z-index:1;padding-top:58px;min-height:100vh}
+.page{display:none}.page.on{display:block;animation:fu .32s ease}
+@keyframes fu{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.auth-wrap{display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 58px);padding:40px 20px}
+.auth-card{width:100%;max-width:400px;background:var(--surf);border:1px solid var(--bdr);border-radius:20px;padding:38px;box-shadow:0 0 0 1px var(--bdr),0 24px 60px rgba(0,0,0,.5)}
+.auth-card h2{font-family:var(--disp);font-size:24px;font-weight:700;margin-bottom:5px}
+.sub{color:var(--muted);font-size:13px;margin-bottom:26px}
+.fld{margin-bottom:15px}
+.fld label{display:block;font-size:11px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:7px}
+.fld input{width:100%;padding:12px 14px;background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;color:var(--txt);font-family:var(--sans);font-size:14px;outline:none;transition:border-color .2s,box-shadow .2s}
+.fld input:focus{border-color:rgba(59,130,246,.5);box-shadow:0 0 0 3px rgba(59,130,246,.08)}
+.fld input.err{border-color:var(--danger)}
+.hint{font-size:11px;color:var(--danger);margin-top:5px;min-height:15px}
+.sbar{height:3px;border-radius:2px;background:var(--surf2);margin-top:7px;overflow:hidden}
+.sfill{height:100%;border-radius:2px;width:0;transition:width .3s,background .3s}
+.btn{width:100%;padding:13px;border:none;border-radius:10px;font-family:var(--disp);font-weight:700;font-size:14px;cursor:pointer;transition:all .2s}
+.bp{background:linear-gradient(135deg,var(--acc),#2563eb);color:#fff}
+.bp:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(59,130,246,.3)}
+.bg{background:var(--surf2);color:var(--txt);border:1px solid var(--bdr);margin-top:9px}
+.bg:hover{border-color:rgba(96,165,250,.3)}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none!important}
+.alink{text-align:center;margin-top:18px;font-size:13px;color:var(--muted)}
+.alink a{color:var(--acc);text-decoration:none;font-weight:500}
+.spin{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:sp .65s linear infinite;margin-right:7px;vertical-align:middle}
+@keyframes sp{to{transform:rotate(360deg)}}
+/* Dashboard */
+.dl{display:grid;grid-template-columns:210px 1fr;min-height:calc(100vh - 58px)}
+.sb{background:rgba(13,21,37,.8);border-right:1px solid var(--bdr);padding:22px 14px;position:sticky;top:58px;height:calc(100vh - 58px);overflow-y:auto}
+.sb-user{text-align:center;padding:18px 8px 20px;border-bottom:1px solid var(--bdr);margin-bottom:18px}
+.av{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--acc2));display:flex;align-items:center;justify-content:center;font-family:var(--disp);font-weight:800;font-size:18px;margin:0 auto 9px}
+.sb-name{font-weight:600;font-size:13px}.sb-ph{color:var(--muted);font-size:11px;font-family:var(--mono)}
+.sb-bal{background:linear-gradient(135deg,rgba(59,130,246,.12),rgba(6,182,212,.08));border:1px solid rgba(59,130,246,.2);border-radius:12px;padding:13px;text-align:center;margin-bottom:20px}
+.sb-bal .lbl{font-size:10px;font-family:var(--mono);color:var(--muted);text-transform:uppercase}.sb-bal .amt{font-family:var(--mono);font-size:20px;color:var(--acc2);margin-top:3px}
+.ni{display:flex;align-items:center;gap:9px;padding:10px 13px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:500;color:var(--muted);transition:all .2s;margin-bottom:3px}
+.ni:hover{background:var(--surf2);color:var(--txt)}.ni.on{background:rgba(59,130,246,.12);color:var(--acc)}
+.ni-ico{font-size:15px}
+.nl{margin-top:14px;border-top:1px solid var(--bdr);padding-top:14px}
+.main{padding:28px;overflow-y:auto}
+.panel{display:none}.panel.on{display:block;animation:fu .28s ease}
+.ph{margin-bottom:24px}.ph h1{font-family:var(--disp);font-size:21px;font-weight:700}.ph .d{color:var(--muted);font-size:13px;margin-top:3px}
+/* Stats */
+.sg{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;margin-bottom:24px}
+.sc{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);padding:18px;position:relative;overflow:hidden}
+.sc::before{content:'';position:absolute;top:-28px;right:-28px;width:70px;height:70px;border-radius:50%;opacity:.09}
+.sc.bl::before{background:var(--acc)}.sc.cy::before{background:var(--acc2)}.sc.gn::before{background:var(--ok)}.sc.rd::before{background:var(--danger)}
+.sl{font-size:10px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.sv{font-family:var(--mono);font-size:24px;font-weight:500;margin:7px 0 3px}
+.ss{font-size:11px;color:var(--muted)}
+.sc.bl .sv{color:var(--acc)}.sc.cy .sv{color:var(--acc2)}.sc.gn .sv{color:var(--ok)}.sc.rd .sv{color:var(--danger)}
+/* Chart */
+.cc{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);padding:22px;margin-bottom:22px}
+.cc h3{font-family:var(--disp);font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:18px}
+.bc{display:flex;align-items:flex-end;gap:7px;height:110px}
+.bcol{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;height:100%;justify-content:flex-end}
+.bar{width:100%;border-radius:4px 4px 0 0;min-height:3px;transition:height .6s cubic-bezier(.34,1.56,.64,1)}
+.bar.sb{background:linear-gradient(180deg,var(--acc),rgba(59,130,246,.3))}.bar.fb{background:linear-gradient(180deg,var(--danger),rgba(239,68,68,.3))}
+.bl2{font-family:var(--mono);font-size:9px;color:var(--muted)}
+/* Table */
+.tc{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);overflow:hidden}
+.th2{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--bdr)}
+.th2 h3{font-family:var(--disp);font-size:13px;font-weight:700}
+.ftabs{display:flex;gap:5px}
+.ftab{padding:4px 11px;border-radius:20px;font-size:11px;font-family:var(--mono);cursor:pointer;border:1px solid var(--bdr);color:var(--muted);background:transparent;transition:all .2s}
+.ftab.on,.ftab:hover{border-color:var(--acc);color:var(--acc)}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:11px 20px;font-size:10px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--bdr)}
+td{padding:13px 20px;font-size:13px;border-bottom:1px solid rgba(96,165,250,.05)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(59,130,246,.03)}
+.tid{font-family:var(--mono);color:var(--muted);font-size:11px}.ta{font-family:var(--mono);font-weight:500}
+.badge{padding:3px 10px;border-radius:20px;font-size:11px;font-family:var(--mono);font-weight:500}
+.bs{background:rgba(34,197,94,.1);color:var(--ok);border:1px solid rgba(34,197,94,.2)}
+.bf{background:rgba(239,68,68,.1);color:var(--danger);border:1px solid rgba(239,68,68,.2)}
+.es{text-align:center;padding:44px 20px;color:var(--muted);font-size:13px}
+.es .ei{font-size:32px;margin-bottom:10px}
+/* Payment */
+.pg{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.fc{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);padding:26px}
+.fc h3{font-family:var(--disp);font-size:15px;font-weight:700;margin-bottom:18px}
+.cprev{background:linear-gradient(135deg,#1e3a5f,#0f2040);border-radius:14px;padding:22px;margin-bottom:22px;position:relative;overflow:hidden;min-height:130px;border:1px solid rgba(59,130,246,.2)}
+.cprev::after{content:'';position:absolute;top:-40%;right:-20%;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(59,130,246,.15),transparent 70%)}
+.cn{font-family:var(--mono);letter-spacing:.12em;font-size:13px;margin-bottom:14px;color:rgba(255,255,255,.8)}
+.co{font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.5);text-transform:uppercase}
+.sa{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);padding:26px}
+.sa h3{font-family:var(--disp);font-size:15px;font-weight:700;margin-bottom:18px}
+.rmw{display:flex;align-items:center;gap:18px;margin:18px 0}
+.rring{position:relative;width:90px;height:90px;flex-shrink:0}
+.rring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.rt{fill:none;stroke:var(--surf2);stroke-width:8}
+.rf{fill:none;stroke-width:8;stroke-linecap:round;transition:stroke-dashoffset .8s ease,stroke .4s}
+.rl{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.rscore{font-family:var(--mono);font-size:18px;font-weight:500}
+.rtxt{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.rdet h4{font-family:var(--disp);font-size:14px;font-weight:700}
+.rdet p{font-size:12px;color:var(--muted);margin-top:5px;line-height:1.6}
+.rfs{margin-top:10px;display:flex;flex-wrap:wrap;gap:5px}
+.rtag{padding:3px 9px;border-radius:20px;font-size:11px;font-family:var(--mono)}
+.rtag.h{background:rgba(239,68,68,.1);color:#fca5a5;border:1px solid rgba(239,68,68,.2)}
+.rtag.m{background:rgba(245,158,11,.1);color:#fcd34d;border:1px solid rgba(245,158,11,.2)}
+.rtag.l{background:rgba(34,197,94,.1);color:#86efac;border:1px solid rgba(34,197,94,.2)}
+.cl{list-style:none}
+.ci{display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:1px solid rgba(96,165,250,.06);font-size:12px}
+.ci:last-child{border-bottom:none}.ck{font-size:14px;flex-shrink:0}
+/* Wallet */
+.wg{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.wc{background:linear-gradient(135deg,#0d1525,#111e33);border:1px solid rgba(59,130,246,.15);border-radius:20px;padding:28px;text-align:center}
+.wc .bb{font-family:var(--mono);font-size:38px;color:var(--acc2);margin:14px 0 3px}
+.wc .bll{color:var(--muted);font-size:12px}
+.qa{display:flex;gap:7px;margin-top:7px}
+.qb{background:var(--surf2);color:var(--txt);border:1px solid var(--bdr);border-radius:8px;padding:7px 14px;font-family:var(--mono);font-size:12px;cursor:pointer;transition:all .2s}
+.qb:hover{border-color:rgba(96,165,250,.3)}
+/* OTP Modal */
+.mover{display:none;position:fixed;inset:0;background:rgba(7,11,18,.88);backdrop-filter:blur(8px);z-index:200;align-items:center;justify-content:center}
+.mover.open{display:flex;animation:fi .2s ease}
+@keyframes fi{from{opacity:0}to{opacity:1}}
+.modal{background:var(--surf);border:1px solid var(--bdr);border-radius:20px;padding:36px;width:360px;text-align:center;box-shadow:0 0 0 1px var(--bdr),0 24px 60px rgba(0,0,0,.5);animation:si .3s cubic-bezier(.34,1.56,.64,1)}
+@keyframes si{from{transform:scale(.9);opacity:0}to{transform:scale(1);opacity:1}}
+.modal h3{font-family:var(--disp);font-size:19px;font-weight:700;margin-bottom:7px}
+.modal p{color:var(--muted);font-size:13px;margin-bottom:22px}
+.od{font-family:var(--mono);font-size:36px;letter-spacing:.2em;color:var(--acc2);background:var(--surf2);border:1px solid var(--bdr);border-radius:11px;padding:18px;margin-bottom:7px;transition:all .3s}
+.od.hidden{filter:blur(12px);user-select:none}
+.ohi{font-size:11px;color:var(--muted);margin-bottom:18px;font-family:var(--mono)}
+.otmr{display:flex;align-items:center;justify-content:center;gap:7px;font-family:var(--mono);font-size:13px;color:var(--muted);margin-bottom:16px}
+.otmr .rem{color:var(--warn)}
+.obar{height:3px;border-radius:2px;background:var(--surf2);margin-bottom:22px;overflow:hidden}
+.obfill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--acc),var(--acc2));width:100%;transition:width 1s linear}
+.odr{display:flex;gap:7px;justify-content:center;margin-bottom:18px}
+.od2{width:50px;height:56px;text-align:center;font-family:var(--mono);font-size:20px;background:var(--surf2);border:2px solid var(--bdr);border-radius:10px;color:var(--txt);outline:none;transition:border-color .2s}
+.od2:focus{border-color:var(--acc)}
+.od2.filled{border-color:rgba(6,182,212,.4)}
+/* Toast */
+.tcon{position:fixed;top:68px;right:18px;z-index:999;display:flex;flex-direction:column;gap:9px;pointer-events:none}
+.toast{padding:11px 16px;border-radius:10px;font-size:13px;font-weight:500;display:flex;align-items:center;gap:9px;animation:ti .28s ease;pointer-events:all;min-width:240px;max-width:320px;backdrop-filter:blur(10px)}
+@keyframes ti{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:translateX(0)}}
+.ts{background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.3);color:#86efac}
+.te{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:#fca5a5}
+.tw{background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);color:#fcd34d}
+.ri{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:500}
+.rl2{background:rgba(34,197,94,.1);color:var(--ok)}.rm2{background:rgba(245,158,11,.1);color:var(--warn)}.rh2{background:rgba(239,68,68,.1);color:var(--danger)}
+@media(max-width:768px){.dl{grid-template-columns:1fr}.sb{display:none}.pg{grid-template-columns:1fr}.wg{grid-template-columns:1fr}.main{padding:18px}}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:3px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">NeoVault</div>
+  <div class="topbar-r">
+    <span><span class="dot"></span>Fraud Shield Active</span>
+    <span id="tbTime"></span>
+  </div>
+</div>
+
+<div class="tcon" id="tcon"></div>
+
+<div class="app">
+
+<!-- LOGIN -->
+<div id="pg-login" class="page on">
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <h2>Welcome back</h2>
+      <p class="sub">Sign in to your NeoVault account</p>
+      <div class="fld"><label>Username</label><input type="text" id="lu" placeholder="your_username"><div class="hint" id="lue"></div></div>
+      <div class="fld"><label>Password</label><input type="password" id="lp" placeholder="••••••••"><div class="hint" id="lpe"></div></div>
+      <button class="btn bp" id="lbtn" onclick="doLogin()">Sign In</button>
+      <div class="alink">No account? <a href="#" onclick="go('pg-signup')">Create one</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- SIGNUP -->
+<div id="pg-signup" class="page">
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <h2>Create account</h2>
+      <p class="sub">Join NeoVault — bank with intelligence</p>
+      <div class="fld"><label>Username</label><input type="text" id="ru" placeholder="choose_username" oninput="vru()"><div class="hint" id="rue"></div></div>
+      <div class="fld"><label>Password</label><input type="password" id="rp" placeholder="strong password" oninput="upStr()"><div class="sbar"><div class="sfill" id="sfill"></div></div><div class="hint" id="rpe"></div></div>
+      <div class="fld"><label>Phone</label><input type="tel" id="rph" placeholder="+91 98765 43210" maxlength="15" oninput="this.value=this.value.replace(/[^0-9+\- ]/g,'')"><div class="hint" id="rphe"></div></div>
+      <button class="btn bp" onclick="doSignup()">Create Account</button>
+      <div class="alink">Have account? <a href="#" onclick="go('pg-login')">Sign in</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="pg-dash" class="page">
+  <div class="dl">
+    <aside class="sb">
+      <div class="sb-user">
+        <div class="av" id="sav">U</div>
+        <div class="sb-name" id="snm">User</div>
+        <div class="sb-ph" id="sph">—</div>
+      </div>
+      <div class="sb-bal"><div class="lbl">Balance</div><div class="amt" id="sbal">₹0</div></div>
+      <nav>
+        <div class="ni on" data-p="ov" onclick="sw('ov')"><span class="ni-ico">📊</span>Overview</div>
+        <div class="ni" data-p="pay" onclick="sw('pay')"><span class="ni-ico">💳</span>Send Payment</div>
+        <div class="ni" data-p="wal" onclick="sw('wal')"><span class="ni-ico">💰</span>Wallet</div>
+        <div class="ni" data-p="hist" onclick="sw('hist')"><span class="ni-ico">📋</span>Transactions</div>
+      </nav>
+      <div class="nl"><div class="ni" onclick="doLogout()"><span class="ni-ico">🚪</span>Logout</div></div>
+    </aside>
+    <main class="main">
+
+      <!-- OVERVIEW -->
+      <div class="panel on" id="pn-ov">
+        <div class="ph"><h1>Overview</h1><div class="d">Financial health at a glance</div></div>
+        <div class="sg">
+          <div class="sc bl"><div class="sl">Balance</div><div class="sv" id="st-bal">₹0</div><div class="ss">Available</div></div>
+          <div class="sc gn"><div class="sl">Success</div><div class="sv" id="st-ok">0</div><div class="ss">Transactions</div></div>
+          <div class="sc rd"><div class="sl">Flagged</div><div class="sv" id="st-fl">0</div><div class="ss">Suspicious</div></div>
+          <div class="sc cy"><div class="sl">Spent</div><div class="sv" id="st-sp">₹0</div><div class="ss">This session</div></div>
+        </div>
+        <div class="cc"><h3>Activity — last 7 periods</h3><div class="bc" id="bChart"></div></div>
+        <div class="tc">
+          <div class="th2"><h3>Recent Transactions</h3></div>
+          <table><thead><tr><th>TXN ID</th><th>Card</th><th>Amount</th><th>Risk</th><th>Status</th><th>Time</th></tr></thead>
+          <tbody id="ovTbl"><tr><td colspan="6"><div class="es"><div class="ei">💳</div>No transactions yet</div></td></tr></tbody></table>
+        </div>
+      </div>
+
+      <!-- PAYMENT -->
+      <div class="panel" id="pn-pay">
+        <div class="ph"><h1>Send Payment</h1><div class="d">Secured by AI fraud detection</div></div>
+        <div class="pg">
+          <div class="fc">
+            <h3>Payment Details</h3>
+            <div class="cprev">
+              <div style="font-size:22px;margin-bottom:10px">📟</div>
+              <div class="cn" id="cpNum">•••• •••• •••• ••••</div>
+              <div class="co" id="cpOwn">CARDHOLDER</div>
+            </div>
+            <div class="fld"><label>Card Number (16 digits)</label><input type="text" id="pCard" placeholder="1234 5678 9012 3456" maxlength="19" oninput="fmtCard(this)" autocomplete="cc-number"><div class="hint" id="pce"></div></div>
+            <div class="fld"><label>Amount (₹)</label><input type="number" id="pAmt" placeholder="0.00" min="1" oninput="updRisk()"><div class="hint" id="pae"></div></div>
+            <div class="fld"><label>Description (optional)</label><input type="text" id="pDesc" placeholder="What's this for?"></div>
+            <button class="btn bp" onclick="initPay()">Continue to OTP Verification</button>
+          </div>
+          <div class="sa">
+            <h3>🛡 Risk Analysis</h3>
+            <div class="rmw">
+              <div class="rring">
+                <svg viewBox="0 0 100 100"><circle class="rt" cx="50" cy="50" r="40"/><circle class="rf" id="rrf" cx="50" cy="50" r="40" stroke-dasharray="251.2" stroke-dashoffset="251.2" stroke="var(--ok)"/></svg>
+                <div class="rl"><div class="rscore" id="rsc">0</div><div class="rtxt">Risk</div></div>
+              </div>
+              <div class="rdet"><h4 id="rlvl">Low Risk</h4><p id="rdsc">Enter card and amount to see live risk assessment.</p><div class="rfs" id="rfact"></div></div>
+            </div>
+            <ul class="cl" id="chkList">
+              <li class="ci"><span class="ck">⚪</span>Card format validation</li>
+              <li class="ci"><span class="ck">⚪</span>Amount threshold check</li>
+              <li class="ci"><span class="ck">⚪</span>Velocity check</li>
+              <li class="ci"><span class="ck">⚪</span>Balance sufficiency</li>
+              <li class="ci"><span class="ck">⚪</span>Pattern anomaly detection</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- WALLET -->
+      <div class="panel" id="pn-wal">
+        <div class="ph"><h1>Wallet</h1><div class="d">Add funds to your account</div></div>
+        <div class="wg">
+          <div class="wc">
+            <div class="bll">Current Balance</div>
+            <div class="bb" id="wBig">₹0</div>
+            <div class="fld" style="text-align:left;margin-top:22px">
+              <label>Add Amount</label>
+              <input type="number" id="waAmt" placeholder="Enter amount" min="1" max="100000">
+              <div class="hint" id="waErr"></div>
+            </div>
+            <div class="qa">
+              <button class="qb" onclick="qa(500)">+₹500</button>
+              <button class="qb" onclick="qa(1000)">+₹1k</button>
+              <button class="qb" onclick="qa(5000)">+₹5k</button>
+            </div>
+            <button class="btn bp" style="margin-top:18px" onclick="addMoney()">Add to Wallet</button>
+          </div>
+          <div class="fc"><h3>Wallet Activity</h3><div id="wAct"><div class="es"><div class="ei">💰</div>No activity yet</div></div></div>
+        </div>
+      </div>
+
+      <!-- HISTORY -->
+      <div class="panel" id="pn-hist">
+        <div class="ph"><h1>Transaction History</h1><div class="d">Full audit trail</div></div>
+        <div class="tc">
+          <div class="th2">
+            <h3>All Transactions</h3>
+            <div class="ftabs">
+              <button class="ftab on" onclick="fh('all',this)">All</button>
+              <button class="ftab" onclick="fh('success',this)">Success</button>
+              <button class="ftab" onclick="fh('fraud',this)">Flagged</button>
+            </div>
+          </div>
+          <table><thead><tr><th>TXN ID</th><th>Card</th><th>Amount</th><th>Risk</th><th>Status</th><th>Time</th></tr></thead>
+          <tbody id="hisTbl"><tr><td colspan="6"><div class="es"><div class="ei">📋</div>No transactions</div></td></tr></tbody></table>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+</div><!-- /app -->
+
+<!-- OTP MODAL -->
+<div class="mover" id="otpModal">
+  <div class="modal">
+    <h3>🔐 Verify Payment</h3>
+    <p>One-time code for transaction of <strong id="otpAmt">₹0</strong></p>
+    <div class="od" id="otpDisp">——</div>
+    <p class="ohi">OTP hides in 5 seconds. Memorise it.</p>
+    <div class="otmr">Expires in <span class="rem" id="otpCd">30</span> seconds</div>
+    <div class="obar"><div class="obfill" id="obf"></div></div>
+    <div class="odr">
+      <input class="od2" maxlength="1" type="text" inputmode="numeric" id="d0">
+      <input class="od2" maxlength="1" type="text" inputmode="numeric" id="d1">
+      <input class="od2" maxlength="1" type="text" inputmode="numeric" id="d2">
+      <input class="od2" maxlength="1" type="text" inputmode="numeric" id="d3">
+    </div>
+    <button class="btn bp" onclick="verOTP()">Verify & Pay</button>
+    <button class="btn bg" onclick="closeOTP()">Cancel</button>
+  </div>
+</div>
+
+<script>
+// ── STATE ────────────────────────────────────────────
+const S={user:null,txns:[],wlog:[],pAmt:0,pCard:'',pDesc:'',pRisk:null,otp:'',otpTimer:null};
+
+// ── STORE ────────────────────────────────────────────
+const Store={
+  users(){return JSON.parse(localStorage.getItem('nv_u')||'{}')},
+  save(u){localStorage.setItem('nv_u',JSON.stringify(u))},
+  exists(u){return!!this.users()[u]},
+  create(u,p,ph){const us=this.users();us[u]={pw:btoa(p),ph,bal:0,txns:[],wlog:[]};this.save(us)},
+  check(u,p){const us=this.users();return us[u]&&us[u].pw===btoa(p)},
+  bal(u){return parseInt(this.users()[u]?.bal||0)},
+  setBal(u,n){const us=this.users();if(us[u]){us[u].bal=n;this.save(us)}},
+  persist(){const us=this.users();if(us[S.user]){us[S.user].txns=S.txns;us[S.user].wlog=S.wlog;this.save(us)}}
+};
+
+// ── FRAUD ENGINE ─────────────────────────────────────
+const Fraud={
+  analyze(amt,card,txns){
+    const f=[];let sc=0;
+    if(!this.luhn(card)){f.push({t:'Invalid card (Luhn)',l:'h'});sc+=35}
+    if(amt>=50000){f.push({t:'Very high value (>₹50k)',l:'h'});sc+=30}
+    else if(amt>=10000){f.push({t:'Large amount (>₹10k)',l:'m'});sc+=15}
+    const now=Date.now(),recent=txns.filter(t=>now-t.ts<60000);
+    if(recent.length>=3){f.push({t:'Rapid transactions',l:'h'});sc+=30}
+    else if(recent.length>=2){f.push({t:'Multiple quick txns',l:'m'});sc+=15}
+    if([1,11,111,1111,9999,99999].includes(amt)){f.push({t:'Suspicious amount',l:'m'});sc+=20}
+    const sc2=txns.filter(t=>t.card===card&&t.status==='success');
+    if(sc2.length>=3){f.push({t:'Card reused often',l:'m'});sc+=15}
+    const hr=new Date().getHours();
+    if(hr>=1&&hr<=5){f.push({t:'Odd-hour transaction',l:'m'});sc+=10}
+    if(amt>1000&&amt%1000===0){f.push({t:'Round-number pattern',l:'l'});sc+=5}
+    sc=Math.min(sc,100);
+    return{sc,lvl:sc>=60?'h':sc>=30?'m':'l',f,
+      chk:{cv:!f.find(x=>x.t.includes('Luhn')),ao:amt<50000,vo:recent.length<3,bo:amt<=Store.bal(S.user),po:!f.find(x=>x.t.includes('Suspicious'))}};
+  },
+  luhn(n){const d=String(n).replace(/\D/g,'');if(d.length<13)return false;let s=0,alt=false;for(let i=d.length-1;i>=0;i--){let x=parseInt(d[i]);if(alt){x*=2;if(x>9)x-=9}s+=x;alt=!alt}return s%10===0},
+  tid(){return'NV'+Date.now().toString(36).toUpperCase()+Math.random().toString(36).slice(2,5).toUpperCase()}
+};
+
+// ── OTP ──────────────────────────────────────────────
+const OTP={
+  gen(){return String(Math.floor(1000+Math.random()*9000))},
+  start(otp,dur=30){
+    S.otp=otp;
+    const disp=document.getElementById('otpDisp'),cd=document.getElementById('otpCd'),bar=document.getElementById('obf');
+    disp.textContent=otp;disp.classList.remove('hidden');
+    setTimeout(()=>{disp.classList.add('hidden');disp.textContent='••••'},5000);
+    let rem=dur;bar.style.width='100%';
+    clearInterval(S.otpTimer);
+    S.otpTimer=setInterval(()=>{rem--;cd.textContent=rem;bar.style.width=(rem/dur*100)+'%';
+      if(rem<=0){clearInterval(S.otpTimer);S.otp='';toast('OTP expired.','w');closeOTP()}},1000)},
+  stop(){clearInterval(S.otpTimer);S.otpTimer=null}
+};
+
+// ── VALIDATION ───────────────────────────────────────
+const V={
+  uname(v){if(!v)return'Required';if(v.length<3)return'Min 3 chars';if(!/^[a-zA-Z0-9_]+$/.test(v))return'Letters/numbers/_ only';return''},
+  pass(v){if(!v)return'Required';if(v.length<6)return'Min 6 chars';return''},
+  phone(v){const c=v.replace(/[\s\-]/g,'');if(!c)return'Required';if(!/^\+?[0-9]{7,15}$/.test(c))return'Invalid number';return''},
+  amt(v,mx){const n=parseInt(v);if(!v||isNaN(n)||n<=0)return'Enter valid amount';if(n>mx)return`Exceeds balance (₹${mx})`;if(n>100000)return'Max ₹1,00,000';return''}
+};
+
+// ── UI HELPERS ───────────────────────────────────────
+function go(id){document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));document.getElementById(id).classList.add('on')}
+function sw(id){document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));document.querySelectorAll('.ni[data-p]').forEach(n=>n.classList.remove('on'));document.getElementById('pn-'+id).classList.add('on');document.querySelector(`.ni[data-p="${id}"]`)?.classList.add('on');if(id==='ov')refOv();if(id==='hist')rHist('all')}
+function toast(msg,t='s'){const el=document.createElement('div');el.className=`toast t${t}`;const ic={s:'✔',e:'✖',w:'⚠'};el.innerHTML=`<span>${ic[t]||'•'}</span><span>${msg}</span>`;document.getElementById('tcon').appendChild(el);setTimeout(()=>el.remove(),3400)}
+function se(id,msg){const e=document.getElementById(id);if(e)e.textContent=msg}
+function ce(...ids){ids.forEach(id=>{const e=document.getElementById(id);if(e)e.textContent=''})}
+function setLoad(id,on){const b=document.getElementById(id);if(!b)return;if(on){b.disabled=true;b.dataset.o=b.innerHTML;b.innerHTML='<span class="spin"></span>Processing...'}else{b.disabled=false;b.innerHTML=b.dataset.o||b.innerHTML}}
+function fmtMoney(n){return'₹'+n.toLocaleString('en-IN')}
+
+// Topbar clock
+setInterval(()=>{const e=document.getElementById('tbTime');if(e)e.textContent=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})},1000);
+
+// ── AUTH ─────────────────────────────────────────────
+function doSignup(){
+  const u=document.getElementById('ru').value.trim(),p=document.getElementById('rp').value,ph=document.getElementById('rph').value.trim();
+  ce('rue','rpe','rphe');let ok=true;
+  const ue=V.uname(u);if(ue){se('rue',ue);ok=false}else if(Store.exists(u)){se('rue','Username taken');ok=false}
+  const pe=V.pass(p);if(pe){se('rpe',pe);ok=false}
+  const phe=V.phone(ph);if(phe){se('rphe',phe);ok=false}
+  if(!ok)return;
+  Store.create(u,p,ph);toast('Account created! Sign in.','s');setTimeout(()=>go('pg-login'),700);
+}
+
+function doLogin(){
+  const u=document.getElementById('lu').value.trim(),p=document.getElementById('lp').value;
+  ce('lue','lpe');
+  if(!u){se('lue','Required');return}if(!p){se('lpe','Required');return}
+  setLoad('lbtn',true);
+  setTimeout(()=>{
+    setLoad('lbtn',false);
+    if(!Store.exists(u)){se('lue','User not found');return}
+    if(!Store.check(u,p)){se('lpe','Wrong password');return}
+    const ud=Store.users()[u];S.user=u;S.txns=ud.txns||[];S.wlog=ud.wlog||[];
+    initDash();go('pg-dash');toast(`Welcome back, ${u}!`,'s');
+  },550);
+}
+
+function doLogout(){Store.persist();S.user=null;S.txns=[];S.wlog=[];go('pg-login');document.getElementById('lu').value='';document.getElementById('lp').value='';toast('Logged out.','s')}
+
+// ── STRENGTH ─────────────────────────────────────────
+function upStr(){const v=document.getElementById('rp').value,f=document.getElementById('sfill');let sc=0;if(v.length>=6)sc++;if(v.length>=10)sc++;if(/[A-Z]/.test(v))sc++;if(/[0-9]/.test(v))sc++;if(/[^a-zA-Z0-9]/.test(v))sc++;f.style.width=(sc/5*100)+'%';f.style.background=['','#ef4444','#f59e0b','#f59e0b','#22c55e','#22c55e'][sc]||'#64748b'}
+function vru(){const v=document.getElementById('ru').value.trim();se('rue',V.uname(v))}
+
+// ── DASHBOARD INIT ────────────────────────────────────
+function initDash(){
+  const ud=Store.users()[S.user];
+  document.getElementById('sav').textContent=S.user[0].toUpperCase();
+  document.getElementById('snm').textContent=S.user;
+  document.getElementById('sph').textContent=ud.ph;
+  document.getElementById('cpOwn').textContent=S.user.toUpperCase();
+  refBal();refOv();sw('ov');
+}
+
+function refBal(){const b=fmtMoney(Store.bal(S.user));['sbal','wBig','st-bal'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent=b})}
+
+// ── OVERVIEW ─────────────────────────────────────────
+function refOv(){
+  const ok=S.txns.filter(t=>t.status==='success'),fl=S.txns.filter(t=>t.status==='fraud');
+  document.getElementById('st-ok').textContent=ok.length;
+  document.getElementById('st-fl').textContent=fl.length;
+  document.getElementById('st-sp').textContent=fmtMoney(ok.reduce((s,t)=>s+t.amt,0));
+  refBal();rChart();rOvTbl();
+}
+
+function rChart(){
+  const c=document.getElementById('bChart');c.innerHTML='';const N=7,chunk=Math.max(1,Math.ceil(S.txns.length/N)),data=[];
+  for(let i=0;i<N;i++){const sl=S.txns.slice(i*chunk,(i+1)*chunk);data.push({ok:sl.filter(t=>t.status==='success').length,fl:sl.filter(t=>t.status==='fraud').length})}
+  const mx=Math.max(...data.flatMap(d=>[d.ok,d.fl]),1);
+  data.forEach((d,i)=>{const col=document.createElement('div');col.className='bcol';const sh=Math.round(d.ok/mx*100),fh=Math.round(d.fl/mx*100);col.innerHTML=`<div class="bar sb" style="height:${sh}%"></div><div class="bar fb" style="height:${fh}%"></div><div class="bl2">P${i+1}</div>`;c.appendChild(col)});
+}
+
+function rOvTbl(){const tb=document.getElementById('ovTbl'),rec=[...S.txns].reverse().slice(0,5);tb.innerHTML=rec.length?rec.map(t=>row(t)).join(''):`<tr><td colspan="6"><div class="es"><div class="ei">💳</div>No transactions yet</div></td></tr>`}
+
+function row(t){const s=t.status==='success',rc=t.risk>=60?'rh2':t.risk>=30?'rm2':'rl2',rl=t.risk>=60?'High':t.risk>=30?'Med':'Low';
+return`<tr><td class="tid">${t.id}</td><td class="tid">${t.mc}</td><td class="ta">${fmtMoney(t.amt)}</td><td><span class="ri ${rc}">${t.risk} – ${rl}</span></td><td><span class="badge ${s?'bs':'bf'}">${s?'✔ Success':'⚠ Flagged'}</span></td><td class="tid">${t.time}</td></tr>`}
+
+// ── PAYMENT ──────────────────────────────────────────
+function fmtCard(inp){let v=inp.value.replace(/\D/g,'').slice(0,16);v=v.match(/.{1,4}/g)?.join(' ')||v;inp.value=v;const r=v.replace(/\s/g,''),pr=(r+'•'.repeat(Math.max(0,16-r.length))).match(/.{1,4}/g)?.join(' ');document.getElementById('cpNum').textContent=pr||'•••• •••• •••• ••••';updRisk()}
+
+function updRisk(){
+  const cr=document.getElementById('pCard').value.replace(/\s/g,''),amt=parseInt(document.getElementById('pAmt').value)||0;
+  if(!cr&&!amt)return;
+  const res=Fraud.analyze(amt,cr,S.txns);
+  const circ=251.2,off=circ-(res.sc/100)*circ,ring=document.getElementById('rrf'),sc=document.getElementById('rsc'),lv=document.getElementById('rlvl'),dc=document.getElementById('rdsc');
+  ring.style.strokeDashoffset=off;
+  const col=res.lvl==='h'?'var(--danger)':res.lvl==='m'?'var(--warn)':'var(--ok)';
+  ring.style.stroke=col;sc.textContent=res.sc;sc.style.color=col;
+  lv.textContent={h:'High Risk — Review',m:'Moderate Risk',l:'Low Risk'}[res.lvl];
+  dc.textContent={h:'Multiple risk signals. Proceed with caution.',m:'Some anomalies detected. OTP required.',l:'Transaction looks normal.'}[res.lvl];
+  document.getElementById('rfact').innerHTML=res.f.map(x=>`<span class="rtag ${x.l}">${x.t}</span>`).join('');
+  const itms=[{k:'cv',t:'Card format validation'},{k:'ao',t:'Amount threshold check'},{k:'vo',t:'Velocity check'},{k:'bo',t:'Balance sufficiency'},{k:'po',t:'Pattern anomaly detection'}];
+  document.getElementById('chkList').innerHTML=itms.map(i=>`<li class="ci"><span class="ck">${res.chk[i.k]?'✅':'❌'}</span>${i.t}</li>`).join('');
+}
+
+function initPay(){
+  const cr=document.getElementById('pCard').value.replace(/\s/g,''),amt=parseInt(document.getElementById('pAmt').value),desc=document.getElementById('pDesc').value.trim(),bal=Store.bal(S.user);
+  ce('pce','pae');let ok=true;
+  if(cr.length!==16){se('pce','Must be 16 digits');ok=false}
+  const ae=V.amt(amt,bal);if(ae){se('pae',ae);ok=false}
+  if(!ok)return;
+  const res=Fraud.analyze(amt,cr,S.txns);
+  if(res.sc>=90){toast('Transaction blocked: Extreme fraud risk.','e');return}
+  S.pAmt=amt;S.pCard=cr;S.pDesc=desc;S.pRisk=res;
+  document.getElementById('otpAmt').textContent=fmtMoney(amt);
+  document.getElementById('otpModal').classList.add('open');
+  ['d0','d1','d2','d3'].forEach(id=>{document.getElementById(id).value='';document.getElementById(id).classList.remove('filled')});
+  document.getElementById('d0').focus();
+  OTP.start(OTP.gen());
+}
+
+// ── OTP DIGITS ────────────────────────────────────────
+document.addEventListener('DOMContentLoaded',()=>{
+  ['d0','d1','d2','d3'].forEach((id,i)=>{
+    const el=document.getElementById(id);
+    el.addEventListener('input',()=>{el.classList.toggle('filled',!!el.value);if(el.value&&i<3)document.getElementById(`d${i+1}`).focus()});
+    el.addEventListener('keydown',e=>{if(e.key==='Backspace'&&!el.value&&i>0)document.getElementById(`d${i-1}`).focus()});
+  });
+});
+
+function getOTP(){return['d0','d1','d2','d3'].map(id=>document.getElementById(id).value).join('')}
+function closeOTP(){OTP.stop();document.getElementById('otpModal').classList.remove('open')}
+
+function verOTP(){
+  const ent=getOTP();if(ent.length<4){toast('Enter all 4 digits','w');return}
+  OTP.stop();
+  const ok=ent===S.otp;
+  const tx={id:Fraud.tid(),card:S.pCard,mc:'XXXX-'+S.pCard.slice(-4),amt:S.pAmt,desc:S.pDesc,risk:S.pRisk.sc,status:ok?'success':'fraud',time:new Date().toLocaleString('en-IN'),ts:Date.now()};
+  S.txns.push(tx);
+  if(ok){Store.setBal(S.user,Store.bal(S.user)-S.pAmt);refBal();toast(`${fmtMoney(S.pAmt)} paid!`,'s')}
+  else{toast('Wrong OTP — flagged as suspicious.','e')}
+  Store.persist();closeOTP();
+  document.getElementById('pCard').value='';document.getElementById('pAmt').value='';document.getElementById('pDesc').value='';
+  document.getElementById('cpNum').textContent='•••• •••• •••• ••••';
+  document.getElementById('rfact').innerHTML='';
+  document.getElementById('chkList').innerHTML=`<li class="ci"><span class="ck">⚪</span>Card format validation</li><li class="ci"><span class="ck">⚪</span>Amount threshold check</li><li class="ci"><span class="ck">⚪</span>Velocity check</li><li class="ci"><span class="ck">⚪</span>Balance sufficiency</li><li class="ci"><span class="ck">⚪</span>Pattern anomaly detection</li>`;
+  sw('ov');
+}
+
+// ── WALLET ────────────────────────────────────────────
+function qa(n){document.getElementById('waAmt').value=n}
+function addMoney(){
+  const v=parseInt(document.getElementById('waAmt').value);ce('waErr');
+  if(!v||v<=0){se('waErr','Enter valid amount');return}if(v>100000){se('waErr','Max ₹1,00,000');return}
+  Store.setBal(S.user,Store.bal(S.user)+v);
+  S.wlog.push({amt:v,time:new Date().toLocaleString('en-IN')});
+  Store.persist();refBal();rWact();document.getElementById('waAmt').value='';toast(`${fmtMoney(v)} added!`,'s');
+}
+function rWact(){const el=document.getElementById('wAct');if(!S.wlog.length){el.innerHTML=`<div class="es"><div class="ei">💰</div>No activity yet</div>`;return}el.innerHTML=[...S.wlog].reverse().slice(0,8).map(w=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--bdr);font-size:13px"><span style="color:var(--ok)">+ ${fmtMoney(w.amt)}</span><span style="color:var(--muted);font-family:var(--mono);font-size:11px">${w.time}</span></div>`).join('')}
+
+// ── HISTORY ───────────────────────────────────────────
+function rHist(f){const tb=document.getElementById('hisTbl');let tx=[...S.txns].reverse();if(f==='success')tx=tx.filter(t=>t.status==='success');if(f==='fraud')tx=tx.filter(t=>t.status==='fraud');tb.innerHTML=tx.length?tx.map(t=>row(t)).join(''):`<tr><td colspan="6"><div class="es"><div class="ei">📋</div>No transactions</div></td></tr>`}
+function fh(f,btn){document.querySelectorAll('.ftab').forEach(b=>b.classList.remove('on'));btn.classList.add('on');rHist(f)}
+</script>
+</body>
+</html>
